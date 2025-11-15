@@ -39,7 +39,7 @@ class TravelBot(ActivityHandler):
             return CITY_IATA.get(city_name.lower(), city_name.upper()[:3])
 
         # Reinicia conversa se usuário disser saudação
-        if text in ["olá", "oi", "bom dia", "boa tarde", "boa noite"]:
+        if text in ["olá","ola", "oi", "bom dia", "boa tarde", "boa noite"]:
             self.user_flow_state[user_id] = {"stage": "menu"}
             await turn_context.send_activity("Bem-vindo ao Bot de Hotel e Voo do André e do Raí.")
             await turn_context.send_activity("O que você deseja fazer? (Ex: reservar hotel, comprar passagem, consultar/cancelar reserva)")
