@@ -2,6 +2,7 @@ from botbuilder.core import ActivityHandler, TurnContext, ConversationState, Use
 from botbuilder.schema import ChannelAccount
 from botbuilder.dialogs import Dialog
 
+# Comentario Teste
 # Dicionário simples para códigos IATA de cidades comuns
 CITY_IATA = {
     "rio de janeiro": "RIO",
