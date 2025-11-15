@@ -1,5 +1,5 @@
 import json
-import requests
+import aiohttp
 from botbuilder.core import MessageFactory, UserState
 from botbuilder.dialogs import ComponentDialog, WaterfallDialog, WaterfallStepContext, DialogTurnResult
 from botbuilder.dialogs.prompts import TextPrompt, PromptOptions, ChoicePrompt, DateTimePrompt
@@ -82,57 +82,55 @@ class ReservarHotelDialog(ComponentDialog):
     async def prompt_cidade_step(self, step_context: WaterfallStepContext) -> DialogTurnResult:
         step_context.values["cpf"] = step_context.result
         
-        # Buscar cidades disponíveis da API
-        try:
-            response = requests.get(f"{CONFIG.API_BASE_URL}/opcoes/cidades")
-            cidades = response.json()
-        except:
-            # Se falhar, usar algumas opções padrão
-            cidades = ["Rio de Janeiro", "São Paulo", "Brasília", "Recife", "Salvador"]
-        
-        options = [Choice(value=cidade) for cidade in cidades]
-        
         return await step_context.prompt(
-            ChoicePrompt.__name__,
-            PromptOptions(
-                prompt=MessageFactory.text("Para qual cidade você deseja viajar?"),
-                choices=options,
-                style=ListStyle.suggested_action
-            )
+            TextPrompt.__name__,
+            PromptOptions(prompt=MessageFactory.text("Para qual cidade você deseja viajar?"))
         )
     
     async def prompt_hotel_step(self, step_context: WaterfallStepContext) -> DialogTurnResult:
-        step_context.values["cidade"] = step_context.result.value
-        
-        # Buscar hotéis disponíveis da API
+        cidade = step_context.result
+        step_context.values["cidade_nome"] = cidade
+
+        # Buscar o código da cidade
         try:
-            response = requests.get(f"{CONFIG.API_BASE_URL}/opcoes/hoteis")
-            hoteis_por_cidade = response.json()
-            hoteis = hoteis_por_cidade.get(step_context.values["cidade"], [])
-        except:
-            # Se falhar, usar algumas opções padrão
-            hoteis_padrao = {
-                "Rio de Janeiro": ["Copacabana Palace", "Windsor Oceanico"],
-                "São Paulo": ["Renaissance Hotel", "Tivoli Mofarrej"],
-                "Brasília": ["Royal Tulip", "Melia Brasil 21"],
-                "Recife": ["Mar Hotel", "Sheraton Reserva"],
-                "Salvador": ["Wish Hotel da Bahia", "Gran Hotel Stella Maris"]
-            }
-            hoteis = hoteis_padrao.get(step_context.values["cidade"], ["Hotel Padrão A", "Hotel Padrão B"])
-        
-        options = [Choice(value=hotel) for hotel in hoteis]
-        
-        return await step_context.prompt(
-            ChoicePrompt.__name__,
-            PromptOptions(
-                prompt=MessageFactory.text(f"Qual hotel em {step_context.values['cidade']} você deseja reservar?"),
-                choices=options,
-                style=ListStyle.suggested_action
-            )
-        )
+            async with aiohttp.ClientSession() as session:
+                async with session.get(f"{CONFIG.API_BASE_URL}/hotels/searchByCity?destinationCity={cidade}") as response:
+                    if response.status == 200:
+                        data = await response.json()
+                        if data and data.get('data'):
+                            city_code = data['data'][0]['iataCode']
+                            step_context.values["cidade"] = city_code
+                            
+                            # Buscar hotéis na cidade
+                            async with session.get(f"{CONFIG.API_BASE_URL}/hotels/searchHotelsByCityCode?cityCode={city_code}") as response_hotels:
+                                if response_hotels.status == 200:
+                                    hotels_data = await response_hotels.json()
+                                    if hotels_data and hotels_data.get('data'):
+                                        hoteis = [f"{hotel['hotel']['name']} ({hotel['hotel']['hotelId']})" for hotel in hotels_data['data']]
+                                        options = [Choice(value=hotel) for hotel in hoteis]
+                                        return await step_context.prompt(
+                                            ChoicePrompt.__name__,
+                                            PromptOptions(
+                                                prompt=MessageFactory.text(f"Qual hotel em {cidade} você deseja reservar?"),
+                                                choices=options,
+                                                style=ListStyle.suggested_action
+                                            )
+                                        )
+                        await step_context.context.send_activity(MessageFactory.text(f"Não encontrei hotéis para a cidade {cidade}."))
+                        return await step_context.end_dialog()
+                    else:
+                        await step_context.context.send_activity(MessageFactory.text("Não consegui buscar os hotéis. Tente novamente."))
+                        return await step_context.end_dialog()
+        except Exception:
+            await step_context.context.send_activity(MessageFactory.text("Ocorreu um erro ao buscar os hotéis."))
+            return await step_context.end_dialog()
     
     async def prompt_data_entrada_step(self, step_context: WaterfallStepContext) -> DialogTurnResult:
-        step_context.values["hotel"] = step_context.result.value
+        hotel_selection = step_context.result.value
+        hotel_id = hotel_selection.split('(')[-1].replace(')', '')
+        hotel_name = hotel_selection.split(' (')[0]
+        step_context.values["hotel"] = hotel_name
+        step_context.values["hotel_id"] = hotel_id
         
         await step_context.context.send_activity(
             MessageFactory.text("Para a data de entrada, informe no formato DD/MM/AAAA (exemplo: 15/11/2025)")
@@ -164,7 +162,7 @@ class ReservarHotelDialog(ComponentDialog):
             f"**Email:** {step_context.values['email']}\n"
             f"**Celular:** {step_context.values['celular']}\n"
             f"**CPF:** {step_context.values['cpf']}\n"
-            f"**Cidade:** {step_context.values['cidade']}\n"
+            f"**Cidade:** {step_context.values['cidade_nome']}\n"
             f"**Hotel:** {step_context.values['hotel']}\n"
             f"**Check-in:** {step_context.values['data_entrada']}\n"
             f"**Check-out:** {step_context.values['data_saida']}\n\n"
@@ -206,25 +204,25 @@ class ReservarHotelDialog(ComponentDialog):
                 
                 # Enviar para a API
                 try:
-                    response = requests.post(
-                        f"{CONFIG.API_BASE_URL}/reservas-hotel", 
-                        json=payload,
-                        headers={"Content-Type": "application/json"}
-                    )
-                    
-                    if response.status_code in [200, 201]:
-                        await step_context.context.send_activity(
-                            MessageFactory.text("✅ Sua reserva de hotel foi confirmada com sucesso! Em breve você receberá um e-mail com os detalhes.")
-                        )
-                    else:
-                        await step_context.context.send_activity(
-                            MessageFactory.text(f"❌ Houve um problema ao confirmar sua reserva. Por favor, tente novamente mais tarde. (Erro: {response.status_code})")
-                        )
-                except Exception as e:
+                    async with aiohttp.ClientSession() as session:
+                        async with session.post(
+                            f"{CONFIG.API_BASE_URL}/reservas-hotel", 
+                            json=payload,
+                            headers={"Content-Type": "application/json"}
+                        ) as response:
+                            if response.status in [200, 201]:
+                                await step_context.context.send_activity(
+                                    MessageFactory.text("✅ Sua reserva de hotel foi confirmada com sucesso! Em breve você receberá um e-mail com os detalhes.")
+                                )
+                            else:
+                                await step_context.context.send_activity(
+                                    MessageFactory.text(f"❌ Houve um problema ao confirmar sua reserva. Por favor, tente novamente mais tarde. (Erro: {response.status})")
+                                )
+                except Exception:
                     await step_context.context.send_activity(
                         MessageFactory.text("❌ Não foi possível conectar com nosso sistema de reservas. Por favor, tente novamente mais tarde.")
                     )
-            except Exception as e:
+            except Exception:
                 await step_context.context.send_activity(
                     MessageFactory.text("❌ Formato de data inválido. Por favor, tente fazer a reserva novamente.")
                 )

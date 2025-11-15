@@ -20,6 +20,7 @@ from bot.main_bot import TravelBot
 from dialogs.main_dialog import MainDialog
 from config import DefaultConfig
 from clu_client import analyze_text_with_clu
+from amadeus_client import amadeus
 
 CONFIG = DefaultConfig()
 
@@ -38,7 +39,7 @@ USER_STATE = UserState(MEMORY)
 DIALOG = MainDialog(USER_STATE)
 
 # Criar o bot
-BOT = TravelBot(CONVERSATION_STATE, USER_STATE, DIALOG)
+BOT = TravelBot(CONVERSATION_STATE, USER_STATE, DIALOG, amadeus)
 
 # Interceptador de erros do adaptador
 async def on_error(context: TurnContext, error: Exception):

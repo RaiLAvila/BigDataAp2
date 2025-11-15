@@ -1,14 +1,5 @@
 @echo off
-REM filepath: c:\Users\joaop\Chatbot-Viagem\iniciar-sistema.bat
 echo Iniciando o sistema de reservas de viagem...
-
-REM Iniciar o Docker com PostgreSQL
-echo Iniciando o PostgreSQL via Docker...
-docker-compose up -d
-
-REM Aguardar o PostgreSQL iniciar completamente
-echo Aguardando o PostgreSQL inicializar (10 segundos)...
-timeout /t 10 /nobreak
 
 REM Iniciar o backend Spring Boot
 echo Iniciando o backend Spring Boot...

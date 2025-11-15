@@ -19,10 +19,11 @@ CITY_IATA = {
 }
 
 class TravelBot(ActivityHandler):
-    def __init__(self, conversation_state: ConversationState, user_state: UserState, dialog):
+    def __init__(self, conversation_state: ConversationState, user_state: UserState, dialog, amadeus_client):
         self.conversation_state = conversation_state
         self.user_state = user_state
         self.dialog = dialog
+        self.amadeus = amadeus_client
         self.dialog_state_property = self.conversation_state.create_property("DialogState")
         self.user_flow_state = {}
 
@@ -104,13 +105,16 @@ class TravelBot(ActivityHandler):
                 try:
                     city_code = get_city_code(data["cidade"])
                     # DEBUG: Mostra parâmetros usados
-                    await turn_context.send_activity(f"[DEBUG] cityCode={city_code}, checkIn={data['checkin']}, checkOut={data['checkout']}")
-                    hotels = self.amadeus.search_hotels(
-                        city_code=city_code,
-                        check_in_date=data["checkin"],
-                        check_out_date=data["checkout"]
+                    await turn_context.send_activity(f"[DEBUG] cityCode={city_code}, checkInDate={data['checkin']}, checkOutDate={data['checkout']}")
+                    
+                    hotels = await self.amadeus.shopping.hotel_offers.get(
+                        cityCode=city_code,
+                        checkInDate=data["checkin"],
+                        checkOutDate=data["checkout"],
+                        adults=data["adults"]
                     )
-                    offers = hotels.get("data", [])
+
+                    offers = hotels.data
                     if offers:
                         msg = f"Encontrei {len(offers)} hotéis em {data['cidade']} de {data['checkin']} a {data['checkout']}.\n"
                         nomes = [h['hotel']['name'] for h in offers[:3] if 'hotel' in h and 'name' in h['hotel']]
@@ -137,16 +141,23 @@ class TravelBot(ActivityHandler):
                 return
             if "data_voo" not in data:
                 data["data_voo"] = normalize_date(turn_context.activity.text)
+                await turn_context.send_activity("Quantos adultos?")
+                return
+            if "adults" not in data:
+                data["adults"] = turn_context.activity.text
                 # Busca voos reais no Amadeus
                 try:
                     origin_code = get_city_code(data["origem"])
                     dest_code = get_city_code(data["destino"])
-                    flights = self.amadeus.search_flights(
-                        origin=origin_code,
-                        destination=dest_code,
-                        departure_date=data["data_voo"]
+                    
+                    flights = await self.amadeus.shopping.flight_offers_search.get(
+                        originLocationCode=origin_code,
+                        destinationLocationCode=dest_code,
+                        departureDate=data["data_voo"],
+                        adults=data["adults"]
                     )
-                    offers = flights.get("data", [])
+
+                    offers = flights.data
                     if offers:
                         msg = f"Encontrei {len(offers)} voos de {data['origem']} para {data['destino']} em {data['data_voo']}.\n"
                         companhias = [f['itineraries'][0]['segments'][0]['carrierCode'] for f in offers[:3] if 'itineraries' in f and f['itineraries']]

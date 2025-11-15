@@ -7,3 +7,4 @@ botbuilder-integration-aiohttp>=4.14.0
 requests>=2.25.1
 aiohttp>=3.7.4
 azure-ai-language-conversations
+gunicorn
