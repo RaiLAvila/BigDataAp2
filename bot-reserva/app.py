@@ -19,6 +19,7 @@ from botbuilder.schema import Activity, ActivityTypes
 from bot.main_bot import TravelBot
 from dialogs.main_dialog import MainDialog
 from config import DefaultConfig
+from clu_client import analyze_text_with_clu
 
 CONFIG = DefaultConfig()
 
@@ -33,7 +34,7 @@ MEMORY = MemoryStorage()
 CONVERSATION_STATE = ConversationState(MEMORY)
 USER_STATE = UserState(MEMORY)
 
-# Criar diálogo principal
+# Criar diálogo principal (versão simplificada)
 DIALOG = MainDialog(USER_STATE)
 
 # Criar o bot
@@ -63,6 +64,15 @@ async def messages(req: Request) -> Response:
 
     activity = Activity().deserialize(body)
     auth_header = req.headers["Authorization"] if "Authorization" in req.headers else ""
+
+    # Analisa o texto do usuário com o CLU e armazena o resultado no turn_state
+    if activity.type == ActivityTypes.message and activity.text:
+        try:
+            clu_result = analyze_text_with_clu(activity.text)
+            activity.additional_properties = activity.additional_properties or {}
+            activity.additional_properties["clu_result"] = clu_result
+        except Exception as e:
+            print("Erro ao chamar CLU:", e)
 
     # Processar a atividade através do adaptador
     response = await ADAPTER.process_activity(activity, auth_header, BOT.on_turn)
