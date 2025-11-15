@@ -64,4 +64,3 @@ jobs:
           slot-name: 'Production'
           publish-profile: ${{ secrets.AZURE_BOT_PUBLISH_PROFILE }}
           package: release.zip
-          startup-command: 'gunicorn --bind=0.0.0.0 --timeout 600 app:app'
