@@ -1,7 +1,8 @@
 aiohttp==3.8.6
-botbuilder-core==4.17.2
-botbuilder-schema==4.17.2
-botbuilder-dialogs==4.17.2
-botbuilder-ai==4.17.2
+botbuilder-core==4.17.0
+botbuilder-schema==4.17.0
+botbuilder-dialogs==4.17.0
 requests==2.31.0
 gunicorn==22.0.0
+azure-ai-language-conversations==1.1.0
+azure-core==1.29.5

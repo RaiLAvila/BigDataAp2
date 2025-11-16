@@ -1,7 +1,6 @@
 import sys
 import traceback
 from datetime import datetime
-from http import HTTPStatus
 
 from aiohttp import web
 from aiohttp.web import Request, Response, json_response
@@ -10,38 +9,48 @@ from botbuilder.core import (
     TurnContext,
     BotFrameworkAdapter,
     ConversationState,
-    MemoryStorage,
     UserState,
+    MemoryStorage,
 )
-from botbuilder.core.integration import aiohttp_error_middleware
 from botbuilder.schema import Activity, ActivityTypes
 
-from bot.main_bot import TravelBot
-from dialogs.main_dialog import MainDialog
+# Alteração: Importando as ferramentas corretas para CLU
+from azure.core.credentials import AzureKeyCredential
+from azure.ai.language.conversations import ConversationAnalysisClient
+
 from config import DefaultConfig
-from clu_client import analyze_text_with_clu
-from amadeus_client import amadeus
+from dialogs.main_dialog import MainDialog
+from bot import DialogBot
 
 CONFIG = DefaultConfig()
 
-# Criar configurações do adaptador com ID e senha do app
-SETTINGS = BotFrameworkAdapterSettings(CONFIG.APP_ID, CONFIG.APP_PASSWORD)
-
 # Criar adaptador
+SETTINGS = BotFrameworkAdapterSettings(CONFIG.APP_ID, CONFIG.APP_PASSWORD)
 ADAPTER = BotFrameworkAdapter(SETTINGS)
 
-# Criar armazenamento
+# --- Configuração do Reconhecedor CLU ---
+# Alteração: Usando a configuração moderna e correta para CLU
+clu_credential = AzureKeyCredential(CONFIG.CLU_API_KEY)
+clu_client = ConversationAnalysisClient(endpoint=CONFIG.CLU_ENDPOINT, credential=clu_credential)
+# Passamos o cliente CLU diretamente para o diálogo principal
+clu_recognizer = {
+    "client": clu_client,
+    "project_name": CONFIG.CLU_PROJECT_NAME,
+    "deployment_name": CONFIG.CLU_DEPLOYMENT_NAME,
+}
+
+
+# Criar armazenamento, estado do usuário e estado da conversa
 MEMORY = MemoryStorage()
-CONVERSATION_STATE = ConversationState(MEMORY)
 USER_STATE = UserState(MEMORY)
+CONVERSATION_STATE = ConversationState(MEMORY)
 
-# Criar diálogo principal (versão simplificada)
-DIALOG = MainDialog(USER_STATE)
+# Criar diálogo principal e bot
+DIALOG = MainDialog(clu_recognizer)
+BOT = DialogBot(CONVERSATION_STATE, USER_STATE, DIALOG)
 
-# Criar o bot
-BOT = TravelBot(CONVERSATION_STATE, USER_STATE, DIALOG, amadeus)
 
-# Interceptador de erros do adaptador
+# Interceptador de erros
 async def on_error(context: TurnContext, error: Exception):
     print(f"\n [on_turn_error] Ocorreu um erro: {error}", file=sys.stderr)
     traceback.print_exc()
@@ -65,15 +74,6 @@ async def messages(req: Request) -> Response:
 
     activity = Activity().deserialize(body)
     auth_header = req.headers["Authorization"] if "Authorization" in req.headers else ""
-
-    # Analisa o texto do usuário com o CLU e armazena o resultado no turn_state
-    if activity.type == ActivityTypes.message and activity.text:
-        try:
-            clu_result = analyze_text_with_clu(activity.text)
-            activity.additional_properties = activity.additional_properties or {}
-            activity.additional_properties["clu_result"] = clu_result
-        except Exception as e:
-            print("Erro ao chamar CLU:", e)
 
     # Processar a atividade através do adaptador
     response = await ADAPTER.process_activity(activity, auth_header, BOT.on_turn)
