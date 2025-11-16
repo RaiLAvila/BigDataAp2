@@ -1,10 +1,7 @@
-botbuilder-core>=4.14.0
-botbuilder-ai>=4.14.0
-botbuilder-dialogs>=4.14.0
-botbuilder-schema>=4.14.0
-botbuilder-applicationinsights>=4.14.0
-botbuilder-integration-aiohttp>=4.14.0
-requests>=2.25.1
-aiohttp>=3.7.4
-azure-ai-language-conversations
-gunicorn
+aiohttp==3.8.1
+botbuilder-core==4.14.3
+botbuilder-schema==4.14.3
+botbuilder-dialogs==4.14.3
+botbuilder-ai==4.14.3
+requests==2.28.1
+gunicorn==23.0.0
