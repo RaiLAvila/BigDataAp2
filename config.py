@@ -1,15 +1,21 @@
+#!/usr/bin/env python3
+# Copyright (c) Microsoft Corporation. All rights reserved.
+# Licensed under the MIT License.
+
 import os
 
 class DefaultConfig:
-    """Bot Configuration"""
+    """ Bot Configuration """
 
-    # ...existing code...
-    LUIS_APP_ID = os.environ.get("LuisAppId", "d2e15483-b863-445c-9112-6da4188829e9")
-    LUIS_API_KEY = os.environ.get("LuisAPIKey", "c434c036339944aaa8c755d3793eff40")
-    LUIS_API_HOST_NAME = os.environ.get("LuisAPIHostName", "brazilsouth.api.cognitive.microsoft.com")
-    LUIS_INTENT_COMPRAR = os.environ.get("LuisIntentComprar", "Comprar")
-    LUIS_INTENT_CONSULTAR_VOO = os.environ.get("LuisIntentConsultarVoo", "Consultar_Voo")
-    LUIS_INTENT_CANCELAR_VOO = os.environ.get("LuisIntentCancelarVoo", "Cancelar_Voo")
-    LUIS_INTENT_RESERVAR_HOTEL = os.environ.get("LuisIntentReservarHotel", "Reservar_Hotel")
-    LUIS_INTENT_CONSULTAR_HOTEL = os.environ.get("LuisIntentConsultarHotel", "Consultar_Hotel")
-    LUIS_INTENT_CANCELAR_HOTEL = os.environ.get("LuisIntentCancelarHotel", "Cancelar_Hotel")
+    PORT = 3979
+    APP_ID = os.environ.get("MicrosoftAppId", "")
+    APP_PASSWORD = os.environ.get("MicrosoftAppPassword", "")
+    API_BASE_URL = os.environ.get("ApiBaseUrl", "https://apibigdata-f6wccv9k46scd6.canadacentral-01.azurewebsites.net/api")
+    
+    CLU_ENDPOINT = os.environ.get("CluEndpoint", "https://botlinguarai.cognitiveservices.azure.com/")
+    CLU_API_KEY = os.environ.get("CluApiKey", "BWOm0BTDjA2YdzxmyT127oAOiUAFrOZd7PQ9GgtUBkYe2ZD2yVTTJQQJ99BKACBsN54XJ3w3AAAaACOGMXaK")
+    CLU_PROJECT_NAME = os.environ.get("CluProjectName", "BotVooEHotel")
+    CLU_DEPLOYMENT_NAME = os.environ.get("CluDeploymentName", "DeployVooHotel")
+    # Adicione suas chaves da Amadeus aqui, se já não estiverem
+    AMADEUS_API_KEY = os.environ.get("AmadeusApiKey", "IaAr9IU6QvVAtZqZTqoTNRAssWMpXbWD")
+    AMADEUS_API_SECRET = os.environ.get("AmadeusApiSecret", "iZTBEwwYlWjHivPG")

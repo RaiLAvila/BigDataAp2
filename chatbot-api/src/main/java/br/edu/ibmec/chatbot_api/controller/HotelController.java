@@ -30,4 +30,8 @@ public class HotelController {
         return ResponseEntity.ok(amadeusIntegration.searchHotelByCity(cityCode));
     }
 
+    @GetMapping("searchByHotelId")
+    public ResponseEntity<String> searchOffersByHotelId(@RequestParam String hotelId) throws IOException, InterruptedException {
+        return ResponseEntity.ok(amadeusIntegration.searchOffersByHotelId(hotelId));
+    }
 }

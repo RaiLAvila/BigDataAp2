@@ -24,4 +24,14 @@ public class FlightController {
     public ResponseEntity<String> searchFlights(@RequestParam String origin, @RequestParam String destination, @RequestParam String departureDate, @RequestParam String adults) throws IOException, InterruptedException {
         return ResponseEntity.ok(amadeusIntegration.searchFlightOffers(origin, destination, departureDate, adults));
     }
+
+    @GetMapping("search-round-trip")
+    public ResponseEntity<String> searchRoundTripFlights(
+            @RequestParam String origin, 
+            @RequestParam String destination, 
+            @RequestParam String departureDate, 
+            @RequestParam String returnDate,
+            @RequestParam String adults) throws IOException, InterruptedException {
+        return ResponseEntity.ok(amadeusIntegration.searchFlightOffers(origin, destination, departureDate, returnDate, adults));
+    }
 }

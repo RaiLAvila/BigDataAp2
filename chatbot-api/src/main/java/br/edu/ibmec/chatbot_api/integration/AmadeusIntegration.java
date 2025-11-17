@@ -107,6 +107,22 @@ public class AmadeusIntegration {
         return response.body();
     }
 
+    public String searchOffersByHotelId(String hotelId) throws IOException, InterruptedException {
+        if (accessToken == null)
+            this.authenticate();
+
+        String url = BASE_URL + "v3/shopping/hotel-offers?hotelIds=" + hotelId;
+
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(java.net.URI.create(url))
+                .header(AUTHORIZATION_HEADER, BEARER_PREFIX + accessToken)
+                .GET()
+                .build();
+        var response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+
+        return response.body();
+    }
+
     public String searchFlightOffers(String origin, String destination, String departureDate, String adults) throws IOException, InterruptedException {
         if (accessToken == null) 
             this.authenticate();
@@ -114,6 +130,27 @@ public class AmadeusIntegration {
         String url = BASE_URL + "v2/shopping/flight-offers?originLocationCode=" + origin 
                       + "&destinationLocationCode=" + destination
                       + "&departureDate=" + departureDate
+                      + "&adults=" + adults;
+
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(java.net.URI.create(url))
+                .header(AUTHORIZATION_HEADER, BEARER_PREFIX + accessToken)
+                .GET()
+                .build();
+                
+        var response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+        
+        return response.body();
+    }
+
+    public String searchFlightOffers(String origin, String destination, String departureDate, String returnDate, String adults) throws IOException, InterruptedException {
+        if (accessToken == null) 
+            this.authenticate();
+        
+        String url = BASE_URL + "v2/shopping/flight-offers?originLocationCode=" + origin 
+                      + "&destinationLocationCode=" + destination
+                      + "&departureDate=" + departureDate
+                      + "&returnDate=" + returnDate
                       + "&adults=" + adults;
 
         HttpRequest request = HttpRequest.newBuilder()
