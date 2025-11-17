@@ -4,6 +4,7 @@ from botbuilder.dialogs import (
 from botbuilder.dialogs.prompts import TextPrompt, PromptOptions
 from botbuilder.core import MessageFactory
 from dialogs.consultar_cancelar_dialog import RESERVAS_MEMORIA
+from amadeus_helper import buscar_voos
 
 class ComprarVooDialog(ComponentDialog):
     def __init__(self, dialog_id: str = None):
@@ -29,14 +30,13 @@ class ComprarVooDialog(ComponentDialog):
         self.initial_dialog_id = "WFComprarVoo"
 
     async def origem_step(self, step_context: WaterfallStepContext) -> DialogTurnResult:
-        # Se já veio origem do CLU, use, senão pergunte
         origem = getattr(step_context.options, "origin", None) if step_context.options else None
         if origem:
             step_context.values["origem"] = origem
             return await step_context.next(origem)
         return await step_context.prompt(
             "OrigemPrompt",
-            PromptOptions(prompt=MessageFactory.text("De qual cidade você vai partir?"))
+            PromptOptions(prompt=MessageFactory.text("Qual a origem? (Exemplo: PAR para Paris)"))
         )
 
     async def destino_step(self, step_context: WaterfallStepContext) -> DialogTurnResult:
@@ -47,7 +47,7 @@ class ComprarVooDialog(ComponentDialog):
             return await step_context.next(destino)
         return await step_context.prompt(
             "DestinoPrompt",
-            PromptOptions(prompt=MessageFactory.text("Para qual cidade você quer ir?"))
+            PromptOptions(prompt=MessageFactory.text("Qual o destino? (Exemplo: MAD para Madrid)"))
         )
 
     async def data_step(self, step_context: WaterfallStepContext) -> DialogTurnResult:
@@ -58,7 +58,7 @@ class ComprarVooDialog(ComponentDialog):
             return await step_context.next(data)
         return await step_context.prompt(
             "DataPrompt",
-            PromptOptions(prompt=MessageFactory.text("Qual a data do voo? (ex: 25/12/2026)"))
+            PromptOptions(prompt=MessageFactory.text("Qual a data do voo? (Exemplo: 2025-11-20)"))
         )
 
     async def cpf_step(self, step_context: WaterfallStepContext) -> DialogTurnResult:
@@ -97,7 +97,7 @@ class ComprarVooDialog(ComponentDialog):
             return await step_context.end_dialog()
 
         cpf = step_context.values['cpf']
-        reserva = f"Voo: {voo_escolhido} ({step_context.values['origem']} -> {step_context.values['destino']} em {step_context.values['data']})"
+        reserva = f"Voo: {voo_escolhido} (CPF: {cpf})"
         RESERVAS_MEMORIA.setdefault(cpf, []).append(reserva)
 
         await step_context.context.send_activity(

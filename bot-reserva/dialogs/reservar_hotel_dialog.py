@@ -50,7 +50,7 @@ class ReservarHotelDialog(ComponentDialog):
         return await step_context.prompt(
             "CheckinPrompt",
             PromptOptions(prompt=MessageFactory.text(
-                "Qual a data de entrada? (Exemplo: 2026-12-25)"
+                "Qual a data de entrada? (Exemplo: 2025-11-18)"
             ))
         )
 
@@ -59,7 +59,7 @@ class ReservarHotelDialog(ComponentDialog):
         return await step_context.prompt(
             "CheckoutPrompt",
             PromptOptions(prompt=MessageFactory.text(
-                "Qual a data de saída? (Exemplo: 2026-12-30)"
+                "Qual a data de saída? (Exemplo: 2025-11-19)"
             ))
         )
 

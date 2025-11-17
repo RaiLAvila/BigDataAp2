@@ -27,3 +27,27 @@ def buscar_hoteis(cidade, checkin, checkout):
     except ResponseError as error:
         print(error)
         return []
+
+def buscar_voos(origem, destino, data, adults=1):
+    try:
+        response = amadeus.shopping.flight_offers_search.get(
+            originLocationCode=origem,
+            destinationLocationCode=destino,
+            departureDate=data,
+            adults=adults,
+            max=5
+        )
+        voos = response.data
+        opcoes = []
+        for i, v in enumerate(voos):
+            segmento = v['itineraries'][0]['segments'][0]
+            partida = segmento['departure']['at']
+            chegada = segmento['arrival']['at']
+            cia = segmento['carrierCode']
+            preco = v['price']['total']
+            moeda = v['price']['currency']
+            opcoes.append(f"{i+1}. {origem}->{destino} {partida[:10]} {partida[11:16]}-{chegada[11:16]} {cia} - {preco} {moeda}")
+        return opcoes
+    except ResponseError as error:
+        print("Erro Amadeus (voos):", error.response.body)
+        return []

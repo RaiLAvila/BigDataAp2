@@ -1,8 +1,14 @@
 import requests
 from config import DefaultConfig
+from amadeus import Client, ResponseError
 
 # URL base do ambiente de teste Amadeus v3
 BASE_URL = "https://test.api.amadeus.com"
+
+amadeus = Client(
+    client_id=DefaultConfig.AMADEUS_API_KEY,
+    client_secret=DefaultConfig.AMADEUS_API_SECRET
+)
 
 def get_amadeus_token():
     url = f"{BASE_URL}/v1/security/oauth2/token"
@@ -47,9 +53,26 @@ def buscar_hoteis(hotel_ids, checkin, checkout, adultos=1):
         opcoes.append(f"{i+1}. {nome} - {estrelas} estrelas - {endereco} - {preco} {moeda}")
     return opcoes
 
-def buscar_voos(origem, destino, data):
-    # Mock temporário até implementar integração real
-    return [
-        f"1. {origem} -> {destino} em {data} - Companhia X - R$500",
-        f"2. {origem} -> {destino} em {data} - Companhia Y - R$550"
-    ]
+def buscar_voos(origem, destino, data, adultos=1):
+    try:
+        response = amadeus.shopping.flight_offers_search.get(
+            originLocationCode=origem,
+            destinationLocationCode=destino,
+            departureDate=data,
+            adults=adultos,
+            max=5
+        )
+        voos = response.data
+        opcoes = []
+        for i, v in enumerate(voos):
+            segmento = v['itineraries'][0]['segments'][0]
+            partida = segmento['departure']['at']
+            chegada = segmento['arrival']['at']
+            cia = segmento['carrierCode']
+            preco = v['price']['total']
+            moeda = v['price']['currency']
+            opcoes.append(f"{i+1}. {origem}->{destino} {partida[:10]} {partida[11:16]}-{chegada[11:16]} {cia} - {preco} {moeda}")
+        return opcoes
+    except ResponseError as error:
+        print("Erro Amadeus (voos):", error.response.body)
+        return []
