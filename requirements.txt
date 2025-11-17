@@ -1,0 +1,13 @@
+# Frameworks e Servidor
+flask
+gunicorn
+aiohttp
+botbuilder-core
+botbuilder-schema
+botbuilder-integration-aiohttp
+
+# Serviços Azure e outros
+azure-cognitiveservices-language-luis
+python-dotenv
+amadeus
+requests
