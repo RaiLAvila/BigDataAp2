@@ -30,7 +30,7 @@ jobs:
           name: java-app
           path: '${{ github.workspace }}/chatbot-api/target/*.jar'
 
-  deploy-java:
+  deploy:
     runs-on: ubuntu-latest
     needs: build
     environment:
@@ -51,28 +51,3 @@ jobs:
           slot-name: 'Production'
           publish-profile: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE_A4091241151E458390842A22F5201A29 }}
           package: '*.jar'
-
-  deploy-python:
-    runs-on: ubuntu-latest
-    needs: build
-    environment:
-      name: 'Production'
-      url: ${{ steps.deploy-python-webapp.outputs.webapp-url }}
-    
-    steps:
-      - name: 'Checkout Github Action'
-        uses: actions/checkout@v4
-
-      - name: Set up Python version
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.10'
-
-      - name: 'Deploy Python app to Azure Web App'
-        id: deploy-python-webapp
-        uses: azure/webapps-deploy@v2
-        with:
-          app-name: 'ApiBigDataPython'
-          slot-name: 'Production'
-          publish-profile: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE_PYTHON }}
-          package: .
