@@ -1,5 +1,6 @@
 from botbuilder.dialogs import WaterfallDialog, WaterfallStepContext, DialogTurnResult
-from botbuilder.dialogs.prompts import TextPrompt, ChoicePrompt, ConfirmPrompt, PromptOptions, Choice
+from botbuilder.dialogs.prompts import TextPrompt, ChoicePrompt, ConfirmPrompt, PromptOptions
+from botbuilder.dialogs.choices import Choice
 from botbuilder.core import MessageFactory
 
 from .cancel_and_help_dialog import CancelAndHelpDialog

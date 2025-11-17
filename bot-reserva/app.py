@@ -1,6 +1,8 @@
+import os
 import sys
 import traceback
 from datetime import datetime
+from http import HTTPStatus  # <-- Adicione esta linha
 
 from aiohttp import web
 from aiohttp.web import Request, Response, json_response
@@ -82,7 +84,7 @@ async def messages(req: Request) -> Response:
     return Response(status=HTTPStatus.OK)
 
 # Configurar rotas web
-APP = web.Application(middlewares=[aiohttp_error_middleware])
+APP = web.Application()
 APP.router.add_post("/api/messages", messages)
 
 if __name__ == "__main__":

@@ -1,4 +1,4 @@
-aiohttp==3.8.6
+aiohttp==3.10.0
 botbuilder-core==4.17.0
 botbuilder-schema==4.17.0
 botbuilder-dialogs==4.17.0
