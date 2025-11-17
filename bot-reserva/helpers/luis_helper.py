@@ -5,8 +5,10 @@ from typing import Dict
 class Intent(Enum):
     COMPRAR_VOO = "ComprarVoo"
     RESERVAR_HOTEL = "ReservarHotel"
-    CONSULTAR_RESERVAS = "ConsultarReservas"
-    CANCELAR_RESERVA = "CancelarReserva"
+    CONSULTAR_HOTEL = "ConsultarHotel"
+    CONSULTAR_VOO = "ConsultarVoo"
+    CANCELAR_HOTEL = "CancelarHotel"
+    CANCELAR_VOO = "CancelarVoo"
     NONE_INTENT = "None"
 
 class LuisResult:

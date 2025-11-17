@@ -32,7 +32,7 @@ class MainDialog(ComponentDialog):
             await step_context.context.send_activity(
                 MessageFactory.text("O serviço de reconhecimento de linguagem (CLU) não está configurado.")
             )
-            return await step_context.next()
+            return await step_context.next(None)
         
         return await step_context.prompt(
             TextPrompt.__name__,
@@ -44,7 +44,7 @@ class MainDialog(ComponentDialog):
     async def act_step(self, step_context: WaterfallStepContext) -> DialogTurnResult:
         luis_result = await LuisHelper.execute_luis_query(self._luis_recognizer, step_context.context)
         intent = luis_result.top_intent
-        
+
         if intent == Intent.COMPRAR_VOO.value:
             # Extrai entidades do CLU
             flight_details = FlightBookingDetails(
@@ -62,12 +62,17 @@ class MainDialog(ComponentDialog):
             )
             return await step_context.begin_dialog(ReservarHotelDialog.__name__, hotel_details)
 
-        if intent in [Intent.CONSULTAR_RESERVAS.value, Intent.CANCELAR_RESERVA.value]:
+        if intent in [
+            Intent.CONSULTAR_HOTEL.value,
+            Intent.CONSULTAR_VOO.value,
+            Intent.CANCELAR_HOTEL.value,
+            Intent.CANCELAR_VOO.value,
+        ]:
             return await step_context.begin_dialog(ConsultarCancelarDialog.__name__, {"intent": intent})
 
         else:
             await step_context.context.send_activity(MessageFactory.text("Desculpe, não entendi. Por favor, tente reformular."))
-            return await step_context.next()
+            return await step_context.next(None)
 
     async def final_step(self, step_context: WaterfallStepContext) -> DialogTurnResult:
         await step_context.context.send_activity(MessageFactory.text("Posso ajudar em algo mais?"))

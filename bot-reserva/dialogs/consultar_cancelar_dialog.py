@@ -1,113 +1,113 @@
-from botbuilder.dialogs import WaterfallDialog, WaterfallStepContext, DialogTurnResult
-from botbuilder.dialogs.prompts import TextPrompt, ChoicePrompt, ConfirmPrompt, PromptOptions
-from botbuilder.dialogs.choices import Choice
+from botbuilder.dialogs import (
+    ComponentDialog, WaterfallDialog, WaterfallStepContext, DialogTurnResult
+)
+from botbuilder.dialogs.prompts import TextPrompt, PromptOptions
 from botbuilder.core import MessageFactory
 
-from .cancel_and_help_dialog import CancelAndHelpDialog
-from helpers import api_client
+# Armazenamento simples em memória (global)
+RESERVAS_MEMORIA = {}
 
-class ConsultarCancelarDialog(CancelAndHelpDialog):
+class ConsultarCancelarDialog(ComponentDialog):
     def __init__(self, dialog_id: str = None):
-        super(ConsultarCancelarDialog, self).__init__(dialog_id or ConsultarCancelarDialog.__name__)
+        super().__init__(dialog_id or ConsultarCancelarDialog.__name__)
 
-        self.add_dialog(TextPrompt(TextPrompt.__name__))
-        self.add_dialog(ChoicePrompt(ChoicePrompt.__name__))
-        self.add_dialog(ConfirmPrompt(ConfirmPrompt.__name__))
+        self.add_dialog(TextPrompt("CpfPrompt"))
+        self.add_dialog(TextPrompt("AcaoPrompt"))
         self.add_dialog(
             WaterfallDialog(
-                WaterfallDialog.__name__,
+                "WFConsultarCancelar",
                 [
                     self.cpf_step,
-                    self.show_reservations_step,
-                    self.action_step,
-                    self.confirm_cancel_step,
-                    self.final_step,
+                    self.listar_reservas_step,
+                    self.cancelar_step,
                 ],
             )
         )
-
-        self.initial_dialog_id = WaterfallDialog.__name__
-        self.intent = None
+        self.initial_dialog_id = "WFConsultarCancelar"
 
     async def cpf_step(self, step_context: WaterfallStepContext) -> DialogTurnResult:
-        self.intent = step_context.options.get("intent")
+        intent = step_context.options.get("intent") if step_context.options else None
+        if intent == "ConsultarHotel":
+            msg = "Informe seu CPF para consultar hotel."
+        elif intent == "ConsultarVoo":
+            msg = "Informe seu CPF para consultar voo."
+        elif intent == "CancelarHotel":
+            msg = "Informe seu CPF para cancelar hotel."
+        elif intent == "CancelarVoo":
+            msg = "Informe seu CPF para cancelar voo."
+        else:
+            msg = "Informe seu CPF para consultar ou cancelar reservas:"
         return await step_context.prompt(
-            TextPrompt.__name__,
-            PromptOptions(prompt=MessageFactory.text("Por favor, informe seu CPF para consulta.")),
+            "CpfPrompt",
+            PromptOptions(prompt=MessageFactory.text(msg))
         )
 
-    async def show_reservations_step(self, step_context: WaterfallStepContext) -> DialogTurnResult:
+    async def listar_reservas_step(self, step_context: WaterfallStepContext) -> DialogTurnResult:
         cpf = step_context.result
         step_context.values["cpf"] = cpf
-        
-        await step_context.context.send_activity(MessageFactory.text("Buscando suas reservas..."))
-        
-        voos = api_client.consultar_reservas_voo(cpf) or []
-        hoteis = api_client.consultar_reservas_hotel(cpf) or []
-        
-        reservas = voos + hoteis
-        step_context.values["reservas"] = reservas
+        intent = step_context.options.get("intent") if step_context.options else None
 
-        if not reservas:
-            await step_context.context.send_activity(MessageFactory.text("Não encontrei nenhuma reserva no seu CPF."))
-            return await step_context.end_dialog()
-
-        if self.intent == "ConsultarReservas":
-            await step_context.context.send_activity(MessageFactory.text("Aqui estão suas reservas:"))
-            for r in reservas:
-                tipo = "Voo" if "itineraries" in r else "Hotel"
-                msg = f"Reserva de {tipo} - ID: {r.get('id')}"
-                await step_context.context.send_activity(MessageFactory.text(msg))
-            return await step_context.end_dialog()
-
-        # Para cancelamento
-        choices = []
-        for r in reservas:
-            tipo = "Voo" if "itineraries" in r else "Hotel"
-            label = f"Reserva de {tipo} - ID: {r.get('id')}"
-            choices.append(Choice(value=f"{tipo.lower()}_{r.get('id')}", title=label))
-        
-        choices.append(Choice(value="nenhuma", title="Nenhuma, obrigado"))
-        
-        return await step_context.prompt(
-            ChoicePrompt.__name__,
-            PromptOptions(
-                prompt=MessageFactory.text("Qual reserva você gostaria de cancelar?"),
-                choices=choices,
-            ),
-        )
-
-    async def action_step(self, step_context: WaterfallStepContext) -> DialogTurnResult:
-        choice = step_context.result.value
-        if choice == "nenhuma":
-            await step_context.context.send_activity(MessageFactory.text("Ok, nenhuma reserva foi cancelada."))
-            return await step_context.end_dialog()
-        
-        step_context.values["reserva_para_cancelar"] = choice
-        return await step_context.next(True) # Pula para o próximo passo
-
-    async def confirm_cancel_step(self, step_context: WaterfallStepContext) -> DialogTurnResult:
-        return await step_context.prompt(
-            ConfirmPrompt.__name__,
-            PromptOptions(prompt=MessageFactory.text("Você tem certeza que deseja cancelar esta reserva?")),
-        )
-
-    async def final_step(self, step_context: WaterfallStepContext) -> DialogTurnResult:
-        if step_context.result:
-            reserva_id_str = step_context.values["reserva_para_cancelar"]
-            tipo, reserva_id = reserva_id_str.split("_")
-
-            success = False
-            if tipo == "voo":
-                success = api_client.cancelar_reserva_voo(reserva_id)
-            elif tipo == "hotel":
-                success = api_client.cancelar_reserva_hotel(reserva_id)
-
-            if success:
-                await step_context.context.send_activity(MessageFactory.text("Sua reserva foi cancelada com sucesso."))
-            else:
-                await step_context.context.send_activity(MessageFactory.text("Houve um erro ao cancelar sua reserva."))
+        # Filtra reservas conforme a intenção
+        reservas = RESERVAS_MEMORIA.get(cpf, [])
+        if intent == "ConsultarHotel" or intent == "CancelarHotel":
+            reservas_filtradas = [r for r in reservas if r.startswith("Hotel:")]
+            tipo = "hotel"
+        elif intent == "ConsultarVoo" or intent == "CancelarVoo":
+            reservas_filtradas = [r for r in reservas if r.startswith("Voo:")]
+            tipo = "voo"
         else:
-            await step_context.context.send_activity(MessageFactory.text("A reserva não foi cancelada."))
-        
+            reservas_filtradas = reservas
+            tipo = "reserva"
+
+        step_context.values["reservas_filtradas"] = reservas_filtradas
+        step_context.values["tipo"] = tipo
+        step_context.values["intent"] = intent
+
+        if not reservas_filtradas:
+            await step_context.context.send_activity(f"Nenhuma {tipo} encontrada para este CPF.")
+            return await step_context.end_dialog()
+
+        reservas_texto = "\n".join([f"{i+1}. {r}" for i, r in enumerate(reservas_filtradas)])
+        await step_context.context.send_activity(
+            MessageFactory.text(f"{tipo.capitalize()}s encontradas:\n{reservas_texto}")
+        )
+
+        # Só pergunta sobre cancelamento se for intenção de cancelar
+        if intent and intent.startswith("Cancelar"):
+            return await step_context.prompt(
+                "AcaoPrompt",
+                PromptOptions(prompt=MessageFactory.text(
+                    f"Se quiser cancelar alguma, informe o número da {tipo}. Caso contrário, digite 'não'."
+                ))
+            )
+        else:
+            return await step_context.end_dialog()
+
+    async def cancelar_step(self, step_context: WaterfallStepContext) -> DialogTurnResult:
+        intent = step_context.values.get("intent")
+        if not intent or not intent.startswith("Cancelar"):
+            return await step_context.end_dialog()
+
+        resposta = step_context.result
+        cpf = step_context.values["cpf"]
+        reservas_filtradas = step_context.values["reservas_filtradas"]
+        tipo = step_context.values["tipo"]
+        reservas = RESERVAS_MEMORIA.get(cpf, [])
+
+        if resposta and resposta.lower() != "não":
+            try:
+                idx = int(resposta) - 1
+                if idx < 0 or idx >= len(reservas_filtradas):
+                    raise ValueError()
+                reserva_cancelada = reservas_filtradas[idx]
+                # Remove do total de reservas do CPF
+                reservas.remove(reserva_cancelada)
+                RESERVAS_MEMORIA[cpf] = reservas
+                await step_context.context.send_activity(
+                    MessageFactory.text(f"{tipo.capitalize()} cancelado(a): {reserva_cancelada}")
+                )
+            except Exception:
+                await step_context.context.send_activity("Opção inválida. Nenhuma reserva foi cancelada.")
+        else:
+            await step_context.context.send_activity("Nenhuma reserva foi cancelada.")
         return await step_context.end_dialog()
