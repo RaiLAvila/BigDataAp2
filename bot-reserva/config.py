@@ -16,6 +16,5 @@ class DefaultConfig:
     CLU_API_KEY = os.environ.get("CluApiKey", "BWOm0BTDjA2YdzxmyT127oAOiUAFrOZd7PQ9GgtUBkYe2ZD2yVTTJQQJ99BKACBsN54XJ3w3AAAaACOGMXaK")
     CLU_PROJECT_NAME = os.environ.get("CluProjectName", "BotVooEHotel")
     CLU_DEPLOYMENT_NAME = os.environ.get("CluDeploymentName", "DeployVooHotel")
-    # Adicione suas chaves da Amadeus aqui, se já não estiverem
     AMADEUS_API_KEY = os.environ.get("AmadeusApiKey", "IaAr9IU6QvVAtZqZTqoTNRAssWMpXbWD")
     AMADEUS_API_SECRET = os.environ.get("AmadeusApiSecret", "iZTBEwwYlWjHivPG")

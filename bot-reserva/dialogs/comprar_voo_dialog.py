@@ -70,14 +70,15 @@ class ComprarVooDialog(ComponentDialog):
 
     async def opcoes_voo_step(self, step_context: WaterfallStepContext) -> DialogTurnResult:
         step_context.values["cpf"] = step_context.result
-        # Aqui futuramente será feita a chamada à API Amadeus
-        opcoes = [
-            "Voo 1: 10h - Companhia X - R$500",
-            "Voo 2: 15h - Companhia Y - R$550",
-            "Voo 3: 20h - Companhia Z - R$600"
-        ]
+        origem = step_context.values["origem"]
+        destino = step_context.values["destino"]
+        data = step_context.values["data"]
+        opcoes = buscar_voos(origem, destino, data)
+        if not opcoes:
+            await step_context.context.send_activity("Nenhuma opção de voo encontrada para os dados informados.")
+            return await step_context.end_dialog()
         step_context.values["opcoes"] = opcoes
-        opcoes_texto = "\n".join([f"{i+1}. {op}" for i, op in enumerate(opcoes)])
+        opcoes_texto = "\n".join(opcoes)
         return await step_context.prompt(
             "DataPrompt",
             PromptOptions(prompt=MessageFactory.text(f"Escolha uma opção de voo:\n{opcoes_texto}\nDigite o número da opção:"))

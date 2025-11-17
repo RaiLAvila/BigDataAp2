@@ -4,6 +4,7 @@ from botbuilder.dialogs import (
 from botbuilder.dialogs.prompts import TextPrompt, PromptOptions
 from botbuilder.core import MessageFactory
 from dialogs.consultar_cancelar_dialog import RESERVAS_MEMORIA
+from amadeus_helper import buscar_hoteis
 
 class ReservarHotelDialog(ComponentDialog):
     def __init__(self, dialog_id: str = None):
@@ -35,7 +36,9 @@ class ReservarHotelDialog(ComponentDialog):
             return await step_context.next(cidade)
         return await step_context.prompt(
             "CidadePrompt",
-            PromptOptions(prompt=MessageFactory.text("Para qual cidade você deseja reservar o hotel?"))
+            PromptOptions(prompt=MessageFactory.text(
+                "Para qual cidade você deseja reservar o hotel? (Exemplo: PAR para Paris, NYC para Nova York)"
+            ))
         )
 
     async def checkin_step(self, step_context: WaterfallStepContext) -> DialogTurnResult:
@@ -46,33 +49,53 @@ class ReservarHotelDialog(ComponentDialog):
             return await step_context.next(checkin)
         return await step_context.prompt(
             "CheckinPrompt",
-            PromptOptions(prompt=MessageFactory.text("Qual a data de entrada? (ex: 25/12/2026)"))
+            PromptOptions(prompt=MessageFactory.text(
+                "Qual a data de entrada? (Exemplo: 2026-12-25)"
+            ))
         )
 
     async def checkout_step(self, step_context: WaterfallStepContext) -> DialogTurnResult:
         step_context.values["checkin"] = step_context.result
         return await step_context.prompt(
             "CheckoutPrompt",
-            PromptOptions(prompt=MessageFactory.text("Qual a data de saída? (ex: 30/12/2026)"))
+            PromptOptions(prompt=MessageFactory.text(
+                "Qual a data de saída? (Exemplo: 2026-12-30)"
+            ))
         )
 
     async def cpf_step(self, step_context: WaterfallStepContext) -> DialogTurnResult:
         step_context.values["checkout"] = step_context.result
         return await step_context.prompt(
             "CpfPrompt",
-            PromptOptions(prompt=MessageFactory.text("Informe seu CPF para associar a reserva:"))
+            PromptOptions(prompt=MessageFactory.text(
+                "Informe seu CPF para associar a reserva (Exemplo: 12345678900):"
+            ))
         )
 
     async def opcoes_hotel_step(self, step_context: WaterfallStepContext) -> DialogTurnResult:
         step_context.values["cpf"] = step_context.result
-        # Aqui futuramente será feita a chamada à API Amadeus
-        opcoes = [
-            "Hotel A - 4 estrelas - R$400/noite",
-            "Hotel B - 3 estrelas - R$300/noite",
-            "Hotel C - 5 estrelas - R$600/noite"
+        cidade = step_context.values["cidade"]
+        checkin = step_context.values["checkin"]
+        checkout = step_context.values["checkout"]
+        # Lista de até 50 hotelIds válidos para Paris
+        hotel_ids = [
+            "RTPARIBS", "YXPARLCC", "YXPARHOT", "ACPAR253", "UIPARPHI",
+            "XKPART01", "RTPAR676", "ACPARA34", "ACPAR689", "ACPAR245",
+            "OIPARHRG", "OIPARHLG", "QIPAR197", "FGPARJ2F", "NNPARP17",
+            "CIPAR416", "HNPARSPC", "RTPARMTT", "ACPAR707", "BWPAR634",
+            "HSPARBRW", "OIPARCHM", "UIPAR644", "VPPAR122", "BWPAR490",
+            "YXPARI6D", "YXPAR164", "MCPAR009", "RDPAR851", "BWPAR679",
+            "FGPARRCH", "EUPAREDM", "WVPARCCL", "FGPAR277", "HNPAREJR",
+            "CIPAR434", "BWPAR815", "OIPARMHY", "CIPAR444", "OIPAR7KQ",
+            "VPPAR044", "FSPAR837", "VPPAR082", "ACPARA47", "NNPARC64",
+            "DHPAR655", "BWPAR740", "PHPARBAZ", "UIPARTHN", "OIPARHZF"
         ]
+        opcoes = buscar_hoteis(hotel_ids, checkin, checkout)
+        if not opcoes:
+            await step_context.context.send_activity("Nenhuma opção de hotel encontrada para os dados informados.")
+            return await step_context.end_dialog()
         step_context.values["opcoes"] = opcoes
-        opcoes_texto = "\n".join([f"{i+1}. {op}" for i, op in enumerate(opcoes)])
+        opcoes_texto = "\n".join(opcoes)
         return await step_context.prompt(
             "CheckinPrompt",
             PromptOptions(prompt=MessageFactory.text(f"Escolha uma opção de hotel:\n{opcoes_texto}\nDigite o número da opção:"))
